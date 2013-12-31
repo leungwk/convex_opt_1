@@ -1,0 +1,11 @@
+; -*- mode: org;-*-
+* convex opt 1
+* grad
+
+looks like when \beta=0.1, slow convergence. Why? Because if =t <-
+t*beta=, then the step size does not update as quickly.
+
+** future
+
+- why does gradient descent converge so quickly?
+
