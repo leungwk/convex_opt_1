@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import itertools
 import scipy.linalg
+from scipy.linalg import cho_factor, cho_solve
 
 def f(A,x):
     """
@@ -116,6 +117,47 @@ def solve(A, x0_in, func):
     return x_stars, df_stats
 
 
+def solve_reuse_hessian(A, x0_in):
+    x_stars = []
+    df_stats = []
+    x0_orig = x0_in.copy()
+    ## try several alpha and beta
+    for N in [1,2,15,30,50]:
+        x0 = x0_orig.copy()
+        x_star, df_stat = newtons_method(A, x0, N, alpha=0.2, beta=0.5)
+        x_stars.append(x_star)
+        df_stat['N'] = N
+        df_stats.append(df_stat)
+    return x_stars, df_stats
+
+
+def f_iters_reuse_hessian(df_stats, n, title='', p_star=None):
+    plt.ion()
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.set_title(title)
+    ax.set_xlabel('~flops')
+    ax.set_ylabel(r'$f(x^{(k)})$' if p_star is None else r'$f(x^{(k)}) -p^*$')
+    for df in df_stats:
+        N = df['N'][0]
+        label = str(N)
+        xs = []
+        ys = []
+        tot_flop = 0
+        for k, row in df.iterrows():
+            if k % N == 0:
+                tot_flop += np.power(n,3)/3.
+            tot_flop += 2*np.power(n,2)
+            xs.append(tot_flop)
+            ys.append(row['f'] -(0 if p_star is None else p_star))
+        ax.plot(xs, ys, label=label)
+    ax.set_xlim([0,2.5e7])
+    if p_star is not None:
+        ax.set_yscale('log')
+    ax.legend(title='N',prop={'size':10})
+    plt.show()
+
+
 def f_iters(df_stats, title=''):
     """"""
     plt.ion()
@@ -166,15 +208,28 @@ def f_t(df):
     plt.show()
 
 
-def newtons_method(A,x,alpha=0.25,beta=0.5):
+def newtons_method(A,x,N=None,alpha=0.25,beta=0.5):
+    """N denotes how often to update the Hessian. N == 1 means continually. N == None means skip factorization"""
     epsilon = 1e-8
     max_iter = 100
 
-    acc_stat = []    
+    acc_stat = []
+    cnt_H = None
+    H_old = None
+    L_struct = None
     for iter_n in xrange(max_iter):
-        H = hessian(A,x)
+        ## for re-using the Hessian
+        if not cnt_H:
+            H = hessian(A,x)
+            if N is not None:
+                L_struct = cho_factor(H)
+            H_old = H
+            cnt_H = N
+        if cnt_H is not None:
+            cnt_H -= 1
+        H = H_old
         g = grad_f(A,x)
-        delta_nt = -scipy.linalg.solve(H,g)
+        delta_nt = -cho_solve(L_struct,g) if N is not None else -scipy.linalg.solve(H,g)
         lambda_2 = np.dot(g.T,-delta_nt)
 
         # stop?

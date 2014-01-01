@@ -11,7 +11,6 @@ Gradient and Newton methods.
 q9.30, (519), Boyd and Vandenberghe
 """
 
-m,n = (200,100)
 m,n = (300,150)
 prng = RandomState(1) # use instead of numpy.random.seed(). src: http://stackoverflow.com/questions/5836335/consistenly-create-same-random-numpy-array
 A = prng.randn(m,n) # each row is a_i^T (n factors), and there are m rows. So A is already in the right shape
