@@ -26,9 +26,9 @@ else:
     x_stars, df_stats = solve_reuse_hessian(A, x0)
     with open(file_path, 'w') as f:
         pickle.dump((x_stars, df_stats),f)
-f_iters_reuse_hessian(df_stats, n, 'Newton\'s method re-using the Hessian N times')
+f_iters_reuse_hessian(df_stats, n, 'Newton\'s method re-using the Hessian N times',p_star=None, path_template='img/newtons_method_-_reuse_hessian_-_n=1,2,15,30,50_-_rs=1,randn=300,150.png')
 ## find p_star (it should be somewhere in there)
 p_star = 0
 for df in df_stats:
     p_star = min(p_star,min(df['f']))
-f_iters_reuse_hessian(df_stats, n, 'Newton\'s method re-using the Hessian N times', p_star=p_star)
+f_iters_reuse_hessian(df_stats, n, 'Newton\'s method re-using the Hessian N times', p_star=p_star,path_template='img/convergence_rate_-_newtons_method_-_reuse_hessian_-_n=1,2,15,30,50_-_rs=1,randn=300,150.png')

@@ -6,6 +6,8 @@
 looks like when \beta=0.1, slow convergence. Why? Because if =t <-
 t*beta=, then the step size does not update as quickly.
 
+Strange that with ^2 added, convergence appears slower.
+
 ** future
 
 - why does gradient descent converge so quickly?

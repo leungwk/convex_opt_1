@@ -40,7 +40,7 @@ def hessian(A,x):
 % remember that the off diagonals go to zero because the mixed derivates don't have such terms
 """
     d = 1./(1 -np.dot(A,x))
-    return np.dot(np.dot(A.T,np.diag(d.ravel())),A) +np.diag(1./np.power((1 +x),2) +1./np.power((1 -x),2))
+    return np.dot(np.dot(A.T,np.diag(np.power(d.ravel(),2))),A) +np.diag(1./np.power((1 +x),2) +1./np.power((1 -x),2))
 
 
 
@@ -131,8 +131,8 @@ def solve_reuse_hessian(A, x0_in):
     return x_stars, df_stats
 
 
-def f_iters_reuse_hessian(df_stats, n, title='', p_star=None):
-    plt.ion()
+def f_iters_reuse_hessian(df_stats, n, title='', p_star=None, path_template=''):
+    # plt.ion()
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.set_title(title)
@@ -155,12 +155,14 @@ def f_iters_reuse_hessian(df_stats, n, title='', p_star=None):
     if p_star is not None:
         ax.set_yscale('log')
     ax.legend(title='N',prop={'size':10})
-    plt.show()
+    # plt.show()
+    plt.savefig(path_template,bbox_inches='tight',pad_inches=0)
+    print "Wrote to {0}".format(path_template)
 
 
-def f_iters(df_stats, title=''):
+def f_iters(df_stats, title='', path_template=''):
     """"""
-    plt.ion()
+    # plt.ion()
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.set_title(title) # "r'" necessary otherwise "ParseFatalException: Expected end of math '$'"
@@ -175,11 +177,13 @@ def f_iters(df_stats, title=''):
         labels.append(label)
     ax.legend(title=r'$\alpha,\beta$',prop={'size':10})
     # ax.legend(lines, labels)
-    plt.show()
+    # plt.show()
+    plt.savefig(path_template,bbox_inches='tight',pad_inches=0)
+    print "Wrote to {0}".format(path_template)
 
 
-def f_ps(df_stats, A, x_stars, title):
-    plt.ion()
+def f_ps(df_stats, A, x_stars, title, path_template):
+    # plt.ion()
     # plt.close()
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -194,7 +198,9 @@ def f_ps(df_stats, A, x_stars, title):
     ax.set_xlabel('k')
     ax.set_ylabel(r'$f(x^{(k)}) -p^*$')
     ax.legend(title=r'$\alpha,\beta$',prop={'size':10},loc='lower left')
-    plt.show()
+    # plt.show()
+    plt.savefig(path_template,bbox_inches='tight',pad_inches=0)
+    print "Wrote to {0}".format(path_template)
     
 
 def f_t(df):
