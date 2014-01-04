@@ -43,6 +43,10 @@ def hessian(A,x):
     return np.dot(np.dot(A.T,np.diag(np.power(d.ravel(),2))),A) +np.diag(1./np.power((1 +x),2) +1./np.power((1 -x),2))
 
 
+def diagonal_hessian(A,x):
+    """calculate diagonal of hessian"""
+    ## fake it for now
+    return np.diag(np.diag(hessian(A,x)))
 
 
 
@@ -117,21 +121,21 @@ def solve(A, x0_in, func):
     return x_stars, df_stats
 
 
-def solve_reuse_hessian(A, x0_in):
+def solve_reuse_hessian(A, x0_in, diag_H=False):
     x_stars = []
     df_stats = []
     x0_orig = x0_in.copy()
     ## try several alpha and beta
     for N in [1,2,15,30,50]:
         x0 = x0_orig.copy()
-        x_star, df_stat = newtons_method(A, x0, N, alpha=0.2, beta=0.5)
+        x_star, df_stat = newtons_method(A, x0, N, alpha=0.2, beta=0.5, diag_H=diag_H)
         x_stars.append(x_star)
         df_stat['N'] = N
         df_stats.append(df_stat)
     return x_stars, df_stats
 
 
-def f_iters_reuse_hessian(df_stats, n, title='', p_star=None, path_template=''):
+def f_iters_reuse_hessian(df_stats, n, title='', p_star=None, path_template='', diag_H=False):
     # plt.ion()
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -146,7 +150,7 @@ def f_iters_reuse_hessian(df_stats, n, title='', p_star=None, path_template=''):
         tot_flop = 0
         for k, row in df.iterrows():
             if k % N == 0:
-                tot_flop += np.power(n,3)/3.
+                tot_flop += np.power(n,3)/3. if not diag_H else n
             tot_flop += 2*np.power(n,2)
             xs.append(tot_flop)
             ys.append(row['f'] -(0 if p_star is None else p_star))
@@ -214,7 +218,7 @@ def f_t(df):
     plt.show()
 
 
-def newtons_method(A,x,N=None,alpha=0.25,beta=0.5):
+def newtons_method(A,x,N=None,alpha=0.25,beta=0.5,diag_H=False):
     """N denotes how often to update the Hessian. N == 1 means continually. N == None means skip factorization"""
     epsilon = 1e-8
     max_iter = 100
@@ -226,7 +230,7 @@ def newtons_method(A,x,N=None,alpha=0.25,beta=0.5):
     for iter_n in xrange(max_iter):
         ## for re-using the Hessian
         if not cnt_H:
-            H = hessian(A,x)
+            H = hessian(A,x) if not diag_H else diagonal_hessian(A,x)
             if N is not None:
                 L_struct = cho_factor(H)
             H_old = H
