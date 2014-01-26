@@ -24,7 +24,7 @@ def _hessian(x):
     return np.diag(1/(np.power(x,2)))
 
 
-def line_search(c, x, grad_x, delta_x_nt, alpha, beta, _f):
+def line_search(c, x, grad_x, delta_x_nt, alpha, beta):
     t = 1.
     ## select t such that it is feasible (move "x+" into domain)
     while any(x +t*delta_x_nt <= 0):
@@ -36,10 +36,10 @@ def line_search(c, x, grad_x, delta_x_nt, alpha, beta, _f):
     # return t
 
     while True:
-        lhs = _f(x +t*delta_x_nt)
+        lhs = _f(c, x +t*delta_x_nt)
         if np.isnan(lhs):
             lhs = np.inf # otherwise the condition might not break eventually
-        rhs = _f(x) +alpha*t*np.dot(grad_x.T,delta_x_nt)
+        rhs = _f(c, x) +alpha*t*np.dot(grad_x.T,delta_x_nt)
         if np.isnan(rhs):
             rhs = np.inf
         if not (lhs > rhs):
@@ -48,7 +48,7 @@ def line_search(c, x, grad_x, delta_x_nt, alpha, beta, _f):
     return t
 
 
-def newton(A, b, c, x, _f, _grad, _hessian, epsilon=1e-6, max_iter=100, alpha=0.25, beta=0.5):
+def newton(A, b, c, x, epsilon=1e-6, max_iter=100, alpha=0.25, beta=0.5):
     acc_stats = []
     for iter_n in xrange(max_iter):
         ## solve kkt system
@@ -56,7 +56,7 @@ def newton(A, b, c, x, _f, _grad, _hessian, epsilon=1e-6, max_iter=100, alpha=0.
         H_inv = np.diag(1./np.diag(H)) # avoid double inversion
         # H_inv = np.diag((x**2).ravel()) # doesn't really do much
         A_H_inv = np.dot(A,H_inv)
-        grad_x = _grad(x)
+        grad_x = _grad(c,x)
         #
         t1 = np.linalg.inv(np.dot(A_H_inv,A.T))
         t2 = -np.dot(A_H_inv,grad_x)
@@ -70,7 +70,7 @@ def newton(A, b, c, x, _f, _grad, _hessian, epsilon=1e-6, max_iter=100, alpha=0.
         if lambda_2/2. <= epsilon:
             break
 
-        t = line_search(c, x, grad_x, delta_x_nt, alpha, beta, _f)
+        t = line_search(c, x, grad_x, delta_x_nt, alpha, beta)
         x += t*delta_x_nt
 
         row = (float(lambda_2/2.), iter_n) # \lambda_2/2 est. of f(x) -p^* using quad approx of f at x
@@ -84,12 +84,10 @@ def newton(A, b, c, x, _f, _grad, _hessian, epsilon=1e-6, max_iter=100, alpha=0.
 def run_newton(A, b, c, x0):
     df_stats = []
     ops_params = []
-    _f_new = functools.partial(_f, c)
-    _grad_new = functools.partial(_grad, c)
     for alpha, beta in itertools.product([0.01,0.1,0.3],[0.1,0.5,0.8]):
-        x_star, nu_star, df_stat = newton(A, b, c, x0.copy(), _f_new, _grad_new, _hessian, alpha=alpha, beta=beta)
+        x_star, nu_star, df_stat = newton(A, b, c, x0.copy(), alpha=alpha, beta=beta)
         df_stats.append(df_stat)
-        ops_params.append((x_star, nu_star, alpha, beta, _f_new(x_star)))
+        ops_params.append((x_star, nu_star, alpha, beta, _f(c, x_star)))
     df_op = pd.DataFrame(ops_params, columns=['x_star', 'nu_star', 'alpha', 'beta', 'f'])
     return df_stats, df_op
 
