@@ -32,9 +32,10 @@ def grad_f(A,x):
 
 def hessian(A,x):
     """
-\grad^2 f(x)
-= \grad \grad f(x)
-= A^T \grad (1 -Ax)^{-1} +\grad (1 -x)^{-1} -\grad (1 +x)^{-1}
+H(f)(x)
+= J (\grad f)(x)
+= \grad^2 f(x)
+= A^T \grad (1 -Ax)^{-1} +\grad (1 -x)^{-1} -\grad (1 +x)^{-1} % now use chain rule
 = A^T (-1) diag((1 -Ax)^{-2})(-A) +diag((-1)(1 -x)^{-2}(-1) -(-1)(1 +x)^{-2}(+1))
 = A^T diag((1 -Ax)^{-2}) A +(1 -x)^{-2} +(1 +x)^{-2}
 % remember that the off diagonals go to zero because the mixed derivates don't have such terms

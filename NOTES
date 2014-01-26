@@ -12,3 +12,21 @@ Strange that with ^2 added, convergence appears slower.
 
 - why does gradient descent converge so quickly?
 
+* lp
+
+## part 1
+
+still much work to do because kkt conditions not exactly satisfied,
+despite seeing quadratic convergence in \lambda_2/2 plot
+#+begin_example
+    dom pf_eq    st_norm             p_star        cvx_p_star   cvx_st_norm
+0  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
+1  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
+2  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
+3  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
+4  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
+5  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
+6  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
+7  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
+8  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
+#+end_example
