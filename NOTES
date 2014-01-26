@@ -30,3 +30,14 @@ despite seeing quadratic convergence in \lambda_2/2 plot
 7  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
 8  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
 #+end_example
+
+
+cvxpy finds p_star ~= 0, so difference here inherented from problems in part 1.
+#+begin_example
+Part 2: LP with strictly feasible starting point (comparison against cvxpy)
+         p_star_diff   mu
+0  [[43.4991771198]]    2
+1  [[43.4987229299]]   10
+2  [[43.4983909124]]   50
+3  [[43.4985190322]]  200
+#+end_example

@@ -1,9 +1,11 @@
 import numpy as np
 from numpy.random import RandomState
-import os
 import pandas as pd
 
-from lp import run_newton, _plot_newton_convergence, _f, _grad
+from .lp import run_lp_center, _plot_lp_center, _f, _grad, run_lp_strict, _plot_lp_strict
+
+import cvxopt
+import cvxpy
 
 image_dir = 'img/'
 
@@ -35,17 +37,14 @@ c = prng.rand(n,1)
 
 
 ## part 1
-df_newton_stats, df_op = run_newton(A, b, c, x0)
-image_path = image_dir +'lp_part_1_-_newton_convergence.png'
-_plot_newton_convergence(df_newton_stats, df_op, image_path)
+acc_df_lp_center_stats, df_op = run_lp_center(A, b, c, x0)
+image_path = image_dir +'lp_-_part_1_-_centering.png'
+_plot_lp_center(acc_df_lp_center_stats, df_op, image_path)
 
 
 
 
 ## compare against cvxpy
-import cvxopt
-import cvxpy
-
 x = cvxpy.Variable(n,name='x')
 A1 = cvxopt.matrix(A)
 c1 = cvxopt.matrix(c)
@@ -84,4 +83,38 @@ for _, row in df_op.iterrows():
     entry = (in_domain, p_f_eq, st_norm, p_star, cvx_p_star, cvx_st_norm)
     acc_stats.append(entry)
 df_stats = pd.DataFrame(acc_stats, columns=['dom','pf_eq','st_norm','p_star','cvx_p_star','cvx_st_norm'])
+print "Part 1: Centering (comparison against cvxpy)"
+print df_stats
+
+
+
+## part 2
+def orig_f(c,x): # the "f" in lp.py includes the barrier; this is the original objective
+    return np.dot(c.T,x)
+acc_df_lp_strict_stats, df_op_lp_strict = run_lp_strict(A, b, c, x0.copy()) # use default starting values
+image_path = image_dir +'lp_-_part_2_-_lp_strict_start.png'
+_plot_lp_strict(acc_df_lp_strict_stats, df_op_lp_strict, image_path)
+
+## compare against cvxpy
+x = cvxpy.Variable(n,name='x')
+A1 = cvxopt.matrix(A)
+c1 = cvxopt.matrix(c)
+ones = cvxopt.matrix(np.ones(n))
+b1 = cvxpy.Variable(b.shape[0],name='b')
+objective = cvxpy.Minimize(
+    c1.T*x
+)
+constraints = [A1*x == b1, x >= 0]
+prob = cvxpy.Problem(objective,constraints)
+p_star_1 = prob.solve()
+
+
+acc_stats = []
+for _, row in df_op_lp_strict.iterrows():
+    x_star, nu_star, mu = row[['x_star','nu_star','mu']]
+    p_star_diff = orig_f(c, x_star) -orig_f(c,x.value)
+    row = (p_star_diff, mu)
+    acc_stats.append( row )
+df_stats = pd.DataFrame(acc_stats, columns=['p_star_diff','mu'])
+print "Part 2: LP with strictly feasible starting point (comparison against cvxpy)"
 print df_stats
