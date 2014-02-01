@@ -1,6 +1,14 @@
 ; -*- mode: org;-*-
 
 * convex opt 1
+* hw7
+** extra 2
+
+#+begin_example
+||x^* struct - x^* generic:||_2
+0.106560881226
+#+end_example
+
 * grad
 
 looks like when \beta=0.1, slow convergence. Why? Because if =t <-
