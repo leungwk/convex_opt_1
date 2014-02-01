@@ -14,30 +14,83 @@ Strange that with ^2 added, convergence appears slower.
 
 * lp
 
-## part 1
+run
+: python hw8.py
 
-still much work to do because kkt conditions not exactly satisfied,
+** part 1
+
+still much work to do because the kkt conditions are not exactly satisfied,
 despite seeing quadratic convergence in \lambda_2/2 plot
 #+begin_example
-    dom pf_eq    st_norm             p_star        cvx_p_star   cvx_st_norm
-0  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
-1  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
-2  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
-3  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
-4  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
-5  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
-6  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
-7  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
-8  True  True  10.435126  [[131.055143223]]  [[44.297798699]]  1.789833e-08
+Part 1: Centering in a LP (comparison against cvxpy)
+    dom pf_eq    st_norm      p_star  cvx_p_star   cvx_st_norm
+0  True  True  10.435126  131.055143   44.297799  1.789833e-08
+1  True  True  10.435126  131.055143   44.297799  1.789833e-08
+2  True  True  10.435126  131.055143   44.297799  1.789833e-08
+3  True  True  10.435126  131.055143   44.297799  1.789833e-08
+4  True  True  10.435126  131.055143   44.297799  1.789833e-08
+5  True  True  10.435126  131.055143   44.297799  1.789833e-08
+6  True  True  10.435126  131.055143   44.297799  1.789833e-08
+7  True  True  10.435126  131.055143   44.297799  1.789833e-08
+8  True  True  10.435126  131.055143   44.297799  1.789833e-08
 #+end_example
 
+** part 2
 
-cvxpy finds p_star ~= 0, so difference here inherented from problems in part 1.
+cvxpy finds p_star ~= 0, so the difference here is inherented from problems in part 1.
 #+begin_example
 Part 2: LP with strictly feasible starting point (comparison against cvxpy)
-         p_star_diff   mu
-0  [[43.4991771198]]    2
-1  [[43.4987229299]]   10
-2  [[43.4983909124]]   50
-3  [[43.4985190322]]  200
+   p_star_diff   mu ieq_feas       eq_diff
+0    43.499173    2     True  5.990610e-04
+1    43.910064   10     True  3.475327e-09
+2    44.559843   50     True  6.557565e-10
+3    45.025293  200     True  3.318745e-10
 #+end_example
+
+** part 3
+
+#+BEGIN_EXAMPLE
+In [351]: pd.Series(x_star.ravel()).describe()
+Out[351]: 
+count    500.000000
+mean       0.433013
+std        1.159786
+min        0.000653
+25%        0.001382
+50%        0.002666
+75%        0.013627
+max        7.836763
+dtype: float64
+
+In [353]: pd.Series(x_cvx).describe()
+Out[353]: 
+count    5.000000e+02
+mean    -1.154816e-25
+std      8.450479e-24
+min     -3.272586e-23
+25%     -2.372136e-24
+50%     -2.006258e-25
+75%      1.723259e-24
+max      9.412942e-23
+dtype: float64
+#+END_EXAMPLE
+My code likely has (many) numerical issues, both because of the large max
+values, and because most components are not 0.
+
+
+
+#+BEGIN_EXAMPLE
+lp_solve() detected infeasible system with t=1.30029104227
+Part 3: LP solver with a phase I method (comparison against cvxpy)
+      p_star_diff  feas ieq_feas       eq_diff
+seed                                          
+0       36.582861  True     True  2.681414e-08
+1       43.910064  True     True  4.329045e-09
+2       48.332190  True     True  3.214140e-08
+3       42.492786  True     True  9.804085e-09
+#+END_EXAMPLE
+seed=1 same as part 2
+
+** future
+
+- look at numerical issues for all calculations (such as loss of precision in Hessian)

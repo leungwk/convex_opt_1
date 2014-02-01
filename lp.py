@@ -50,9 +50,15 @@ def line_search(c, x, grad_x, delta_x_nt, alpha, beta):
 
 def lp_center(A, b, c, x, epsilon=1e-6, max_iter=100, alpha=0.25, beta=0.5):
     acc_stats = []
+    prev_lambda_2 = np.inf
+    prev_w = None
+    prev_cond_n = None
     for iter_n in xrange(max_iter):
         ## solve kkt system
         H = _hessian(x)
+        cond_n = np.linalg.cond(H)
+        if prev_cond_n is None:
+            prev_cond_n = cond_n
         H_inv = np.diag(1./np.diag(H)) # avoid double inversion
         # H_inv = np.diag((x**2).ravel()) # doesn't really do much
         A_H_inv = np.dot(A,H_inv)
@@ -61,6 +67,8 @@ def lp_center(A, b, c, x, epsilon=1e-6, max_iter=100, alpha=0.25, beta=0.5):
         t1 = np.linalg.inv(np.dot(A_H_inv,A.T))
         t2 = -np.dot(A_H_inv,grad_x)
         w = np.dot(t1,t2)
+        if prev_w is None:
+            prev_w = w
         # t1 = np.dot(A_H_inv,A.T)
         # w = scipy.linalg.solve(t1,t2) # no difference in output
         #
@@ -69,15 +77,24 @@ def lp_center(A, b, c, x, epsilon=1e-6, max_iter=100, alpha=0.25, beta=0.5):
         lambda_2 = -np.dot(delta_x_nt.T,grad_x)
         if lambda_2/2. <= epsilon:
             break
+        ## these checks matter; they check that the problem does not suddenly increase. Without them, x0 returned by phase I will be very large (~e150) and might no longer be feasible
+        if (lambda_2 > prev_lambda_2 +1) or (cond_n/prev_cond_n) > 5: # "+1" and "5" are arbitrary tolerances
+            w = prev_w
+            break
+        prev_w = w
+        prev_lambda_2 = lambda_2
 
         t = line_search(c, x, grad_x, delta_x_nt, alpha, beta)
         x += t*delta_x_nt
 
-        row = (float(lambda_2/2.), iter_n) # \lambda_2/2 est. of f(x) -p^* using quad approx of f at x
+        row = (float(lambda_2/2.), iter_n, cond_n) # \lambda_2/2 est. of f(x) -p^* using quad approx of f at x
         acc_stats.append(row)
 
-    df = pd.DataFrame(acc_stats, columns=['l2_2', 'k'])
-    df.set_index('k',inplace=True)
+    if acc_stats:
+        df = pd.DataFrame(acc_stats, columns=['l2_2', 'k', 'cond_h'])
+        df.set_index('k',inplace=True)
+    else:
+        df = pd.DataFrame()
     return x, w, df
 
 
@@ -108,13 +125,15 @@ def _plot_lp_center(dfs, df_op, image_path):
     ax.legend(title=r'$\alpha,\beta$',prop={'size':10},loc='upper right')
     plt.savefig(image_path,bbox_inches='tight',pad_inches=0)
     print "Wrote to {0}".format(image_path)
-    # plt.show()
 
 
-def lp_strict(A, b, c, x, t=1, mu=10, epsilon=1e-3):
+def lp_strict(A, b, c, x, t=1, mu=10, epsilon=1e-3, debug=False):
     """Assuming a strictly feasible starting point"""
     n = len(x)
     acc_stats = []
+    if debug:
+        import pdb
+        pdb.set_trace()
     while True:
         x_star, nu_star, df_stat = lp_center(A, b, c*t, x, alpha=0.01, beta=0.5) # c*t will create objective tc^Tx -1^Tlog(x), the original objective plus log barrier
         x = x_star
@@ -124,7 +143,7 @@ def lp_strict(A, b, c, x, t=1, mu=10, epsilon=1e-3):
         if gap < epsilon:
             break
         t *= mu
-    df = pd.DataFrame(acc_stats, columns=['k_newton','gap'])
+    df = pd.DataFrame(acc_stats, columns=['k_newton','gap']) if acc_stats else pd.DataFrame()
     return x_star, nu_star, df
 
 
@@ -155,3 +174,45 @@ def _plot_lp_strict(dfs, df_op, image_path):
     ax.legend(title='mu',prop={'size':10},loc='upper right')
     plt.savefig(image_path,bbox_inches='tight',pad_inches=0)
     print "Wrote to {0}".format(image_path)
+
+
+def lp_solve(A, b, c):
+    """Derivation for phase I to use in lp_strict:
+min. t
+st. Ax = b
+    x \succeq (1 -t)\vec{1}
+    t \geq 0
+
+let z = x +(t -1)\vec{1}, then
+min. (over x,t) t <==> c=[0,...,0,1][z;t]
+st. Ax = b
+    z \succeq 0, t \geq 0 <==> [z;t] \succeq 0
+
+\begin{align*}
+Ax &= b\\
+Az -A(t -1)\vec{1} = b\\
+Az -tA\vec{1} &= b -A\vec{1}
+[A|-A\vec{1}][z;t] = b -A\vec{1}
+A_1[z;t] = b_1
+\end{align*}
+
+A LP on [z;t].
+"""
+    ones = np.ones(c.shape)
+    zeros = np.zeros(c.shape)
+    x0, _, _, _ = np.linalg.lstsq(A, b) # solve() does not handle non-square
+    t0 = 2 +max(0, -min(x0))
+    A1 = np.concatenate([A,-np.dot(A,ones)],axis=1)
+    b1 = b -np.dot(A,ones)
+    z0 = x0 +(t0 -1)*ones
+    c1 = np.concatenate([zeros,np.array([[1]])]) # min s. <==> min. c=[0,...,0,1]*x == t0 where x=[z0,t0]
+    x0_ls = np.concatenate([z0,np.array([t0])])
+    # assert np.allclose(np.dot(A1,x0_ls),b1)
+    zt_star, nu_star, df = lp_strict(A1, b1, c1, x0_ls.copy())
+    if zt_star[-1] >= 1:
+        raise ValueError("Infeasible", float(zt_star[-1]))
+
+    x0_new = zt_star[:-1] -(zt_star[-1] -1)*ones
+    x_star, nu_star, df = lp_strict(A, b, c, x0_new.copy())
+    ####
+    return x_star, nu_star, df
